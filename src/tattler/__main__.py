@@ -69,11 +69,12 @@ async def _amain() -> int:
         logger.info("shutdown signal received")
         health.mark_unready()
         await client.close()
-        worker.stop()
+        # Drain the bus first (worker still running so task_done() fires).
         try:
             await asyncio.wait_for(bus.join(), timeout=10.0)
         except TimeoutError:
             logger.warning("bus drain timed out")
+        worker.stop()
         for t in (worker_task, watcher_task, heartbeat_task, client_task):
             t.cancel()
         for t in (worker_task, watcher_task, heartbeat_task, client_task):
