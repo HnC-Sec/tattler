@@ -161,8 +161,20 @@ rules:
     exclude: []                     # snowflakes; merged with globals.exclude
     rate_limit_seconds: 60          # optional; falls back to globals.default_rate_limit_seconds
     message: "Rule {rule_name} matched in #{channel_name} by {author}: {content}"
-    webhooks: [alerts]              # one or more named webhooks
+    webhooks: [alerts]              # required, non-empty list of names defined in `webhooks:` above
 ```
+
+### Validation rules
+
+The config loader rejects (at startup and on hot-reload) any of:
+
+- A rule whose `webhooks` list is empty or references a name not defined in
+  the top-level `webhooks:` map.
+- A rule with an invalid regex `pattern`.
+- A webhook with `format` not in `{discord, generic}`.
+- A rule missing `name`, `pattern`, `message`, or `webhooks`.
+
+Rule `name` values must be unique within the config.
 
 ### Template placeholders
 
