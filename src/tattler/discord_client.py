@@ -69,7 +69,6 @@ class TattlerClient(discord.Client):
 
     async def on_disconnect(self) -> None:
         logger.warning("discord client disconnected")
-        self._health.mark_unready()
 
     async def on_message(self, message: "discord.Message") -> None:
         await self._handle(message, is_edit=False)
