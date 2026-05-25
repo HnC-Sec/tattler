@@ -34,5 +34,8 @@ class ConfigHolder:
         return self._config
 
     async def watch(self) -> None:
-        async for _ in awatch(self._path):
+        # Watch the parent directory so we pick up Kubernetes ConfigMap
+        # symlink-swap updates (the leaf path itself often doesn't fire).
+        parent = self._path.parent
+        async for _ in awatch(parent):
             self.load()
