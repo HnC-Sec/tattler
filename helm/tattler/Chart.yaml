@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tattler
+description: Discord self-bot that observes messages, matches regex rules, and dispatches webhooks.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

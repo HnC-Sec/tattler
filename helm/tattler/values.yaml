@@ -1,0 +1,47 @@
+image:
+  repository: tattler
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# One of:
+#   discordToken: <inline-token>   # rendered into a Secret (NOT recommended)
+#   existingSecret: <name>         # reference a Secret you create out-of-band
+discordToken: ""
+existingSecret: ""
+existingSecretKey: token
+
+# Tattler config YAML (rendered into a ConfigMap and mounted at /etc/tattler/config.yaml).
+config:
+  globals:
+    include: []
+    exclude: []
+    default_rate_limit_seconds: 30
+  webhooks: {}
+  rules: []
+
+# Tattler is a singleton; do not increase.
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    failureThreshold: 3
+    # Live file must have been touched within the last 60 seconds.
+    maxStaleSeconds: 60
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
