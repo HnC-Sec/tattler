@@ -15,5 +15,8 @@ class DiscordFormatter:
         globals_: GlobalConfig,
     ) -> dict[str, Any]:
         # Temporary: preserved behavior. Task 4 replaces this with embed rendering.
-        template = rule.message or (rule.embed.description if rule.embed else "")
+        template = rule.message
+        if template is None:
+            # Validator on RuleConfig guarantees embed.description is set when message is None.
+            template = rule.embed.description  # type: ignore[union-attr]
         return {"content": render(template, event)}
