@@ -10,7 +10,6 @@ import httpx
 from tattler.bus import EventBus
 from tattler.config.models import Config
 from tattler.notifier.rate_limit import RateLimiter
-from tattler.notifier.template import render
 from tattler.notifier.webhooks.base import WebhookFormatter
 from tattler.notifier.webhooks.dispatcher import Dispatcher
 from tattler.notifier.webhooks.discord import DiscordFormatter
@@ -61,12 +60,19 @@ class NotifierWorker:
             logger.debug("rate-limited: rule=%s channel=%s", event.rule_name, event.channel_id)
             return
 
-        rendered = render(event.rule_message_template, event)
+        rule = next((r for r in cfg.rules if r.name == event.rule_name), None)
+        if rule is None:
+            logger.warning(
+                "event for rule %r dropped: rule no longer in config",
+                event.rule_name,
+            )
+            return
+
         for name in event.rule_webhooks:
             webhook_cfg = cfg.webhooks.get(name)
             if webhook_cfg is None:
                 logger.warning("event %s references unknown webhook %r", event.rule_name, name)
                 continue
             formatter = _FORMATTERS[webhook_cfg.format]
-            payload = formatter.format(event, rendered)
+            payload = formatter.format(event, rule, cfg.globals)
             await self._dispatcher.send(webhook_cfg, payload)

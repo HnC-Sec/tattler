@@ -101,3 +101,21 @@ async def test_worker_skips_event_for_unknown_webhook_name():
         await task
 
     assert len(respx.calls) == 0
+
+
+@respx.mock
+async def test_worker_drops_event_for_unknown_rule_name(caplog):
+    respx.post("https://example.com/alerts").mock(return_value=httpx.Response(204))
+    respx.post("https://example.com/audit").mock(return_value=httpx.Response(204))
+
+    bus = EventBus()
+    cfg_holder = lambda: _cfg()
+    async with httpx.AsyncClient() as client:
+        worker = NotifierWorker(bus, cfg_holder, client)
+        task = asyncio.create_task(worker.run())
+        await bus.publish(_event(rule_name="vanished"))
+        await asyncio.wait_for(bus.join(), timeout=1.0)
+        worker.stop()
+        await task
+
+    assert len(respx.calls) == 0
