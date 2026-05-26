@@ -9,7 +9,6 @@ def _event(**overrides) -> MatchEvent:
     defaults = dict(
         rule_name="r1",
         rule_webhooks=("alerts",),
-        rule_message_template="rendered: {content}",
         rule_rate_limit_seconds=30,
         author="alice",
         author_id=111,

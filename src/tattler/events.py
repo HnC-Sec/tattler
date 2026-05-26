@@ -10,7 +10,6 @@ class MatchEvent:
 
     rule_name: str
     rule_webhooks: tuple[str, ...]
-    rule_message_template: str
     rule_rate_limit_seconds: int
 
     # Discord context

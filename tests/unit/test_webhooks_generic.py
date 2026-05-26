@@ -20,7 +20,6 @@ def _event() -> MatchEvent:
     return MatchEvent(
         rule_name="r1",
         rule_webhooks=("audit",),
-        rule_message_template="rendered: {content}",
         rule_rate_limit_seconds=30,
         author="alice",
         author_id=111,

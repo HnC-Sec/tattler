@@ -17,7 +17,7 @@ def _cfg() -> Config:
 
 def _evt(content: str = "hi") -> MatchEvent:
     return MatchEvent(
-        rule_name="r", rule_webhooks=("a",), rule_message_template="m",
+        rule_name="r", rule_webhooks=("a",),
         rule_rate_limit_seconds=0, author="x", author_id=1, channel_name="c",
         channel_id=2, guild_name="g", guild_id=3, content=content,
         message_id=4, message_link="https://x",

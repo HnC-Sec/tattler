@@ -58,7 +58,6 @@ class Matcher:
             yield MatchEvent(
                 rule_name=rule.name,
                 rule_webhooks=tuple(rule.webhooks),
-                rule_message_template=rule.message,
                 rule_rate_limit_seconds=rule.effective_rate_limit(self._config.globals),
                 author=msg.author,
                 author_id=msg.author_id,
