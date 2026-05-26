@@ -2,14 +2,26 @@ from __future__ import annotations
 
 from typing import Any
 
+from tattler.config.models import GlobalConfig, RuleConfig
 from tattler.events import MatchEvent
+from tattler.notifier.template import render
 
 
 class GenericFormatter:
-    def format(self, event: MatchEvent, rendered_message: str) -> dict[str, Any]:
+    def format(
+        self,
+        event: MatchEvent,
+        rule: RuleConfig,
+        globals_: GlobalConfig,
+    ) -> dict[str, Any]:
+        template = rule.message
+        if template is None:
+            # Validator on RuleConfig guarantees embed.description is set when message is None.
+            template = rule.embed.description  # type: ignore[union-attr]
+        rendered = render(template, event)
         return {
             "rule_name": event.rule_name,
-            "message": rendered_message,
+            "message": rendered,
             "event": {
                 "author": event.author,
                 "author_id": str(event.author_id),
