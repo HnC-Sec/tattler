@@ -64,7 +64,9 @@ async def test_worker_dispatches_to_all_named_webhooks_for_event():
 
     assert alerts.called
     assert audit.called
-    assert alerts.calls.last.request.read() == b'{"content":"hit: foo bar"}'
+    import json
+    payload = json.loads(alerts.calls.last.request.read())
+    assert payload["embeds"][0]["description"] == "hit: foo bar"
 
 
 @respx.mock
