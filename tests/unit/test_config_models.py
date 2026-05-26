@@ -2,7 +2,7 @@ import re
 import pytest
 from pydantic import ValidationError
 
-from tattler.config.models import Config, GlobalConfig, RuleConfig, WebhookConfig
+from tattler.config.models import Config, EmbedConfig, GlobalConfig, RuleConfig, WebhookConfig
 
 
 def _minimal_dict():
@@ -92,3 +92,74 @@ def test_globals_defaults_when_section_omitted():
     assert cfg.globals.include == []
     assert cfg.globals.exclude == []
     assert cfg.globals.default_rate_limit_seconds == 30
+
+
+def test_embed_config_parses_all_fields_and_normalizes_color_hex_string():
+    embed = EmbedConfig.model_validate({
+        "title": "{rule_name}",
+        "description": "{content}",
+        "url": "{message_link}",
+        "author": "Bot",
+        "color": "#ff5555",
+        "footer": "from {guild_name}",
+    })
+    assert embed.title == "{rule_name}"
+    assert embed.description == "{content}"
+    assert embed.url == "{message_link}"
+    assert embed.author == "Bot"
+    assert embed.color == 0xFF5555
+    assert embed.footer == "from {guild_name}"
+
+
+def test_embed_config_color_accepts_0x_prefix_and_uppercase():
+    assert EmbedConfig.model_validate({"color": "0xFF5555"}).color == 0xFF5555
+    assert EmbedConfig.model_validate({"color": "#FF5555"}).color == 0xFF5555
+
+
+def test_embed_config_color_accepts_integer():
+    assert EmbedConfig.model_validate({"color": 16734293}).color == 16734293
+
+
+def test_embed_config_rejects_malformed_color():
+    for bad in ["red", "#zzzzzz", "#fffffff", "#fff", -1, 0x1000000]:
+        with pytest.raises(ValidationError):
+            EmbedConfig.model_validate({"color": bad})
+
+
+def test_embed_config_rejects_unknown_field():
+    with pytest.raises(ValidationError):
+        EmbedConfig.model_validate({"thumbnail": "https://example.com/x.png"})
+
+
+def test_globals_embed_author_defaults_to_tattler_bot():
+    g = GlobalConfig()
+    assert g.embed_author == "Tattler bot"
+
+
+def test_globals_embed_author_can_be_overridden():
+    g = GlobalConfig.model_validate({"embed_author": "MyBot"})
+    assert g.embed_author == "MyBot"
+
+
+def test_rule_message_optional_when_embed_description_set():
+    d = _minimal_dict()
+    d["rules"][0].pop("message")
+    d["rules"][0]["embed"] = {"description": "{content}"}
+    cfg = Config.model_validate(d)
+    assert cfg.rules[0].message is None
+    assert cfg.rules[0].embed.description == "{content}"
+
+
+def test_rule_rejects_when_both_message_and_embed_description_missing():
+    d = _minimal_dict()
+    d["rules"][0].pop("message")
+    d["rules"][0]["embed"] = {"title": "t"}
+    with pytest.raises(ValidationError):
+        Config.model_validate(d)
+
+
+def test_rule_rejects_when_message_and_embed_both_missing():
+    d = _minimal_dict()
+    d["rules"][0].pop("message")
+    with pytest.raises(ValidationError):
+        Config.model_validate(d)
