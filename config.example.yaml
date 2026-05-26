@@ -1,0 +1,79 @@
+# Example tattler configuration.
+#
+# The Discord token is NEVER in this file. Set TATTLER_DISCORD_TOKEN in the
+# environment. Tattler reads this file at startup and re-reads it whenever it
+# changes on disk (hot reload).
+#
+# Snowflake IDs (in include/exclude lists) are Discord IDs as integers — they
+# can be a guild, channel, user, or role ID. Match semantics:
+#   - exclude wins over include
+#   - empty include means "allow everything (subject to excludes)"
+#   - global and per-rule lists are merged with set union before matching
+
+globals:
+  # Optional allowlist. If non-empty, a message must have at least one
+  # matching snowflake (guild, channel, author, or role) to be eligible.
+  include: []
+
+  # Optional denylist. If a message has any snowflake here, it is skipped.
+  # Common uses: ignore yourself (the self-bot's own user ID), ignore noisy
+  # bot channels, ignore a specific server entirely.
+  exclude: []
+    # - 111111111111111111   # your own user ID (highly recommended)
+    # - 222222222222222222   # a noisy #bot-spam channel
+
+  # Default cooldown applied to rules that don't specify their own
+  # rate_limit_seconds. Keyed by (rule name, channel) — a hit in one channel
+  # won't suppress the same rule firing in another.
+  default_rate_limit_seconds: 30
+
+  # Default `author.name` for Discord embed payloads. Per-rule
+  # `embed.author` overrides this.
+  embed_author: "Tattler bot"
+
+
+# Named webhook destinations. Each rule references one or more by name.
+#
+# format: "discord" sends a Discord-compatible {"content": "..."} payload —
+#         point at a Discord channel webhook URL.
+# format: "generic" sends a structured JSON envelope to any HTTP endpoint
+#         (Slack adapter, your own service, etc.). See README/spec for shape.
+webhooks:
+  alerts:
+    url: https://discord.com/api/webhooks/1508695169120337970/_iKszQSBD9q22kp1EHm66iFwH5z60Bdc5DmImVyWPwzU_7zxOzNWwVPOB2TU7x4Xsxpe
+    format: discord
+    timeout_seconds: 5
+    retries: 3
+    backoff_base_seconds: 1.0    # retry delays will be 1s, 2s, 4s, then drop
+
+
+# Regex rules. Each rule has:
+#   name                   - unique label; appears in webhook payload + logs
+#   pattern                - Python regex (use the (?i) flag for case-insensitive)
+#   include / exclude      - per-rule snowflake filters, merged with globals
+#   rate_limit_seconds     - optional; falls back to globals.default_rate_limit_seconds
+#   message                - template; placeholders documented in the spec
+#   webhooks               - list of named webhooks defined above (required)
+#
+# Template placeholders: {rule_name} {author} {author_id} {channel_name}
+#   {channel_id} {guild_name} {guild_id} {content} {message_id}
+#   {message_link} {timestamp} {match} {match_groups} {is_edit}
+# Missing values render as empty strings (templates never crash).
+
+rules:
+  # Example 1: alert when someone mentions you by name.
+  # Discord webhooks now send rich embeds. All embed fields are optional;
+  # by default the embed shows: title=rule name, description=`message`,
+  # url=message link, author=globals.embed_author. Override any field below.
+  # Strings support the same {placeholders} as `message`. Set a field to "" to
+  # suppress its default.
+  - name: name_mention
+    pattern: "(?i)\\b(javert|harry|skelli)\\b"
+    rate_limit_seconds: 60
+    message: "{author} mentioned you in #{channel_name} ({guild_name}): {content}\n{message_link}"
+    webhooks: [alerts]
+    exclude:
+      - 135499198865997824
+    embed:
+      color: "#ff5555"
+      footer: "matched: {match}"

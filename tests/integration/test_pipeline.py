@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime, timezone
 
 import httpx
@@ -66,8 +67,17 @@ async def test_happy_path_pipeline():
         await task
 
     assert route.call_count == 1
-    body = route.calls.last.request.read()
-    assert b"alice said hello in #general" in body
+    body = json.loads(route.calls.last.request.read())
+    assert body == {
+        "embeds": [
+            {
+                "title": "say_hi",
+                "description": "alice said hello in #general",
+                "url": "https://discord.com/x",
+                "author": {"name": "Tattler bot"},
+            }
+        ]
+    }
 
 
 @respx.mock
