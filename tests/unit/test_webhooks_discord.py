@@ -113,6 +113,7 @@ def test_empty_rendered_field_is_omitted_so_user_can_suppress_default():
 
 
 def test_description_falls_back_to_embed_description_when_message_absent():
+    # _cfg always sets `message`; build cfg_dict directly so message is truly absent.
     cfg_dict = {
         "webhooks": {
             "alerts": {"url": "https://x", "format": "discord", "timeout_seconds": 1, "retries": 0, "backoff_base_seconds": 0.0},

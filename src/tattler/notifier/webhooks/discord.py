@@ -22,7 +22,8 @@ class DiscordFormatter:
         if title != "":
             embed["title"] = title
 
-        # description — default: rendered rule.message; override: rendered embed.description
+        # description — default: rendered rule.message; override: rendered embed.description.
+        # The `else` is unreachable: RuleConfig validates that message or embed.description is set.
         if embed_cfg.description is not None:
             description = render(embed_cfg.description, event)
         elif rule.message is not None:
