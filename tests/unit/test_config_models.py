@@ -92,6 +92,7 @@ def test_globals_defaults_when_section_omitted():
     assert cfg.globals.include == []
     assert cfg.globals.exclude == []
     assert cfg.globals.default_rate_limit_seconds == 30
+    assert cfg.globals.embed_author == "Tattler bot"
 
 
 def test_embed_config_parses_all_fields_and_normalizes_color_hex_string():
