@@ -14,7 +14,7 @@ from tattler.notifier.worker import NotifierWorker
 
 def _cfg() -> Config:
     return Config.model_validate({
-        "globals": {"include": [], "exclude": [], "default_rate_limit_seconds": 60},
+        "globals": {"include": [], "exclude": [], "default_rate_limit_seconds": 60, "embed_author": "Tattler bot"},
         "webhooks": {
             "alerts": {"url": "https://example.com/alerts", "format": "discord", "timeout_seconds": 1, "retries": 0, "backoff_base_seconds": 0.0},
         },

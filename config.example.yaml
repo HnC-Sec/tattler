@@ -34,7 +34,7 @@ globals:
 
 # Named webhook destinations. Each rule references one or more by name.
 #
-# format: "discord" sends a Discord-compatible {"content": "..."} payload —
+# format: "discord" sends a Discord embed payload {"embeds": [...]} —
 #         point at a Discord channel webhook URL.
 # format: "generic" sends a structured JSON envelope to any HTTP endpoint
 #         (Slack adapter, your own service, etc.). See README/spec for shape.
@@ -54,6 +54,11 @@ webhooks:
 #   rate_limit_seconds     - optional; falls back to globals.default_rate_limit_seconds
 #   message                - template; placeholders documented in the spec
 #   webhooks               - list of named webhooks defined above (required)
+#   embed                  - optional; per-rule embed overrides (title, description,
+#                            url, author, color, footer). Strings support
+#                            {placeholders}. Defaults: title=rule name,
+#                            description=message, url=message link,
+#                            author=globals.embed_author
 #
 # Template placeholders: {rule_name} {author} {author_id} {channel_name}
 #   {channel_id} {guild_name} {guild_id} {content} {message_id}
