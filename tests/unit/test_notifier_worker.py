@@ -110,12 +110,17 @@ async def test_worker_drops_event_for_unknown_rule_name(caplog):
 
     bus = EventBus()
     cfg_holder = lambda: _cfg()
-    async with httpx.AsyncClient() as client:
-        worker = NotifierWorker(bus, cfg_holder, client)
-        task = asyncio.create_task(worker.run())
-        await bus.publish(_event(rule_name="vanished"))
-        await asyncio.wait_for(bus.join(), timeout=1.0)
-        worker.stop()
-        await task
+    with caplog.at_level("WARNING"):
+        async with httpx.AsyncClient() as client:
+            worker = NotifierWorker(bus, cfg_holder, client)
+            task = asyncio.create_task(worker.run())
+            await bus.publish(_event(rule_name="vanished"))
+            await asyncio.wait_for(bus.join(), timeout=1.0)
+            worker.stop()
+            await task
 
     assert len(respx.calls) == 0
+    assert any(
+        r.levelname == "WARNING" and "vanished" in r.message
+        for r in caplog.records
+    )
