@@ -8,8 +8,17 @@ import respx
 
 from tattler.bus import EventBus
 from tattler.config.models import Config
+from tattler.invites import InviteView
 from tattler.matcher import Matcher, MessageView
 from tattler.notifier.worker import NotifierWorker
+
+
+class _NoopResolver:
+    async def resolve(self, code: str) -> InviteView:
+        raise NotImplementedError("resolver should not be called in message-rule pipeline tests")
+
+
+_resolver = _NoopResolver()
 
 
 def _cfg() -> Config:
@@ -59,7 +68,7 @@ async def test_happy_path_pipeline():
         worker = NotifierWorker(bus, lambda: cfg, http)
         task = asyncio.create_task(worker.run())
 
-        for event in Matcher(cfg).evaluate(_msg("oh hello there")):
+        async for event in Matcher(cfg).evaluate(_msg("oh hello there"), _resolver):
             await bus.publish(event)
 
         await asyncio.wait_for(bus.join(), timeout=1.0)
@@ -91,7 +100,7 @@ async def test_rate_limit_suppresses_second_event():
         task = asyncio.create_task(worker.run())
 
         for content in ("hello a", "hello b"):
-            for event in Matcher(cfg).evaluate(_msg(content)):
+            async for event in Matcher(cfg).evaluate(_msg(content), _resolver):
                 await bus.publish(event)
 
         await asyncio.wait_for(bus.join(), timeout=1.0)

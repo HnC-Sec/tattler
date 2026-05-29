@@ -1,7 +1,9 @@
 # Tattler
 
 A Discord self-bot that observes messages in joined servers, matches them
-against configured regex rules, and dispatches webhook notifications.
+against configured rules, and dispatches webhook notifications. Rules can
+match either message text (`type: message`, regex) or Discord invite
+metadata (`type: invite`, structured + regex).
 
 > ⚠️ Self-bots violate Discord's Terms of Service. Use at your own risk.
 
@@ -20,8 +22,10 @@ Run locally against a config file:
 
 ## Configuration
 
-See `docs/superpowers/specs/2026-05-25-tattler-design.md` for the full config
-schema, semantics, and architecture.
+See `docs/superpowers/specs/2026-05-25-tattler-design.md` for the base
+config schema and `docs/superpowers/specs/2026-05-29-invite-rules-design.md`
+for the invite-rule schema and template placeholders. `config.example.yaml`
+contains commented examples of both rule types.
 
 ## Deployment
 

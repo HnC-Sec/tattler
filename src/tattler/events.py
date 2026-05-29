@@ -3,10 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from tattler.invites import InviteView
+
 
 @dataclass(frozen=True)
 class MatchEvent:
-    """Emitted by the matcher when a regex rule matches a message."""
+    """Emitted by the matcher when a rule matches a message."""
 
     rule_name: str
     rule_webhooks: tuple[str, ...]
@@ -28,3 +30,6 @@ class MatchEvent:
     # Match data
     match: str
     match_groups: tuple[str, ...] = field(default_factory=tuple)
+
+    # Populated only for invite-rule matches; None for message-rule matches.
+    invite: InviteView | None = None

@@ -31,6 +31,12 @@ globals:
   # `embed.author` overrides this.
   embed_author: "Tattler bot"
 
+  # Invite-rule lookup cache. Resolved invite metadata is cached for this
+  # many seconds to avoid hammering the Discord API on reposts. Unresolved
+  # (expired/invalid) codes are cached with min(ttl, 60s).
+  invite_cache_ttl_seconds: 600
+  invite_cache_max_entries: 1024
+
 
 # Named webhook destinations. Each rule references one or more by name.
 #
@@ -47,12 +53,18 @@ webhooks:
     backoff_base_seconds: 1.0    # retry delays will be 1s, 2s, 4s, then drop
 
 
-# Regex rules. Each rule has:
+# Rules. Each rule has a `type` field that selects the rule kind:
+#   type: message  (default)  - matches a regex against observed message text
+#   type: invite              - matches against Discord invite metadata for any
+#                               invite URL posted in observed messages
+#
+# Common fields (both types):
 #   name                   - unique label; appears in webhook payload + logs
-#   pattern                - Python regex (use the (?i) flag for case-insensitive)
-#   include / exclude      - per-rule snowflake filters, merged with globals
+#   include / exclude      - per-rule snowflake filters on the POSTING location
+#                            (channel/guild/author of the message). Merged
+#                            with globals.
 #   rate_limit_seconds     - optional; falls back to globals.default_rate_limit_seconds
-#   message                - template; placeholders documented in the spec
+#   message                - template; placeholders documented below
 #   webhooks               - list of named webhooks defined above (required)
 #   embed                  - optional; per-rule embed overrides (title, description,
 #                            url, author, color, footer). Strings support
@@ -60,9 +72,36 @@ webhooks:
 #                            description=message, url=message link,
 #                            author=globals.embed_author
 #
-# Template placeholders: {rule_name} {author} {author_id} {channel_name}
-#   {channel_id} {guild_name} {guild_id} {content} {message_id}
-#   {message_link} {timestamp} {match} {match_groups} {is_edit}
+# Message-rule fields:
+#   pattern                - Python regex (use the (?i) flag for case-insensitive)
+#
+# Invite-rule fields (all optional; at least one condition is required):
+#   pattern                - regex matched against "{guild_name}\n{channel_name}\n{inviter_name}"
+#                            for resolved invites (or against the bare code for
+#                            unresolved invites when match_unresolved is true)
+#   target_guild_include   - allow-list of target guild IDs for resolved invites
+#   target_guild_exclude   - deny-list of target guild IDs for resolved invites
+#   min_members            - minimum approximate_member_count
+#   max_members            - maximum approximate_member_count
+#   vanity                 - require vanity_url_code == code (true/false)
+#   has_expiry             - require expires_at to be non-null (true/false)
+#   verification_level     - allow-list: any of [none, low, medium, high, highest]
+#   match_unresolved       - if true, the rule also fires for invites that
+#                            failed to resolve (expired/invalid). Requires
+#                            `pattern` to be set; resolution-dependent
+#                            conditions are skipped for unresolved invites.
+#
+# Template placeholders (all):
+#   {rule_name} {author} {author_id} {channel_name} {channel_id}
+#   {guild_name} {guild_id} {content} {message_id} {message_link}
+#   {timestamp} {match} {match_groups} {is_edit}
+#
+# Invite-rule placeholders (empty for message-rule events):
+#   {invite_code} {invite_resolved} {invite_guild_id} {invite_guild_name}
+#   {invite_channel_id} {invite_channel_name} {invite_inviter_id}
+#   {invite_inviter_name} {invite_member_count} {invite_presence_count}
+#   {invite_expires_at} {invite_is_vanity} {invite_verification_level}
+#
 # Missing values render as empty strings (templates never crash).
 
 rules:
@@ -75,10 +114,34 @@ rules:
   - name: name_mention
     pattern: "(?i)\\b(javert|harry|skelli)\\b"
     rate_limit_seconds: 60
-    message: "{author} mentioned you in #{channel_name} ({guild_name}): {content}\n{message_link}"
     webhooks: [alerts]
     exclude:
       - 135499198865997824
     embed:
       color: "#ff5555"
       footer: "matched: {match}"
+      title: "Moderator Name Mention"
+      description: "Author: {author}\nServer: {guild_name}\nChannel: #{channel_name}\n\nMessage:\n{content}"
+
+  # Example 2: alert on invite URLs posted to small / unverified servers,
+  # ignoring invites to your trusted servers. Resolves each invite via the
+  # Discord API; results are cached per globals.invite_cache_*.
+  - name: suspicious_invite
+    type: invite
+    pattern: "(?i)nitro|giveaway|free"            # optional; matches guild/channel/inviter names
+    target_guild_exclude:
+      - 111111111111111111                        # your trusted server(s)
+    max_members: 100                              # tiny throwaway servers
+    verification_level: [none, low]
+    match_unresolved: true                        # also alert on expired/bogus codes
+    rate_limit_seconds: 120
+    webhooks: [alerts]
+    embed:
+      color: "#ffaa00"
+      title: "Suspicious invite posted"
+      description: |
+        Posted by {author} in #{channel_name} ({guild_name})
+        Code: {invite_code} (resolved={invite_resolved})
+        Target: {invite_guild_name} — {invite_member_count} members
+        Inviter: {invite_inviter_name}
+        {message_link}

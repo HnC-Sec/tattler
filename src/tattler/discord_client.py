@@ -9,6 +9,7 @@ import discord  # provided by discord.py-self
 from tattler.bus import EventBus
 from tattler.config.models import Config
 from tattler.health import HealthFiles
+from tattler.invites import InviteResolver
 from tattler.matcher import Matcher, MessageView
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,12 @@ class TattlerClient(discord.Client):
         self._config_provider = config_provider
         self._bus = bus
         self._health = health
+        globals_ = config_provider().globals
+        self._invite_resolver = InviteResolver(
+            client=self,
+            ttl_seconds=globals_.invite_cache_ttl_seconds,
+            max_entries=globals_.invite_cache_max_entries,
+        )
 
     async def on_ready(self) -> None:
         logger.info("discord client connected as %s", self.user)
@@ -83,5 +90,5 @@ class TattlerClient(discord.Client):
             logger.exception("failed to project discord message")
             return
         matcher = Matcher(self._config_provider())
-        for event in matcher.evaluate(view):
+        async for event in matcher.evaluate(view, self._invite_resolver):
             await self._bus.publish(event)
