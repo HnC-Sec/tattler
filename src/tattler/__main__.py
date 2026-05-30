@@ -13,6 +13,8 @@ from tattler.bus import EventBus
 from tattler.config.watcher import ConfigHolder
 from tattler.discord_client import TattlerClient
 from tattler.health import HealthFiles
+from tattler.notifier.status import StatusReporter
+from tattler.notifier.webhooks.dispatcher import Dispatcher
 from tattler.notifier.worker import NotifierWorker
 
 logger = logging.getLogger("tattler")
@@ -56,7 +58,8 @@ async def _amain() -> int:
         watcher_task = asyncio.create_task(holder.watch(), name="config-watcher")
         heartbeat_task = asyncio.create_task(health.heartbeat(), name="health-heartbeat")
 
-        client = TattlerClient(holder.get, bus, health)
+        status_reporter = StatusReporter(holder.get, Dispatcher(http))
+        client = TattlerClient(holder.get, bus, health, status_reporter=status_reporter)
 
         stop = asyncio.Event()
         loop = asyncio.get_running_loop()

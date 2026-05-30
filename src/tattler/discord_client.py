@@ -11,6 +11,7 @@ from tattler.config.models import Config
 from tattler.health import HealthFiles
 from tattler.invites import InviteResolver
 from tattler.matcher import Matcher, MessageView
+from tattler.notifier.status import StatusReporter
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +59,13 @@ class TattlerClient(discord.Client):
         config_provider: Callable[[], Config],
         bus: EventBus,
         health: HealthFiles,
+        status_reporter: StatusReporter | None = None,
     ) -> None:
         super().__init__()
         self._config_provider = config_provider
         self._bus = bus
         self._health = health
+        self._status_reporter = status_reporter
         globals_ = config_provider().globals
         self._invite_resolver = InviteResolver(
             client=self,
@@ -73,6 +76,8 @@ class TattlerClient(discord.Client):
     async def on_ready(self) -> None:
         logger.info("discord client connected as %s", self.user)
         self._health.mark_ready()
+        if self._status_reporter is not None:
+            await self._status_reporter.report([g.name for g in self.guilds])
 
     async def on_disconnect(self) -> None:
         logger.warning("discord client disconnected")
