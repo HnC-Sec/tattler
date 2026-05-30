@@ -46,7 +46,7 @@ globals:
 #         (Slack adapter, your own service, etc.). See README/spec for shape.
 webhooks:
   alerts:
-    url: https://discord.com/api/webhooks/1508695169120337970/_iKszQSBD9q22kp1EHm66iFwH5z60Bdc5DmImVyWPwzU_7zxOzNWwVPOB2TU7x4Xsxpe
+    url: https://discord.com/api/webhooks/123/abc
     format: discord
     timeout_seconds: 5
     retries: 3
